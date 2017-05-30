@@ -150,6 +150,10 @@ def train_neural_network(x):
         #without adding back the mean
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[0,:], fs1)
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[1,:], fs1)
+        
+        #windows writing path
+        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[0,:], fs1)
+        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[1,:], fs1)
 
 start_time = time.clock()
 
