@@ -7,6 +7,10 @@ import time
 data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
 data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
 
+#Windows reading path
+# data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
+# data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
+
 #this sets the random seed to a fixed number.
 np.random.seed(10)
 
@@ -137,6 +141,7 @@ def train_neural_network(x):
 
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
 
+        
         #a random matrix with shape 2*1
         Y = np.empty([2,1])
         startIndex = 0
@@ -147,6 +152,7 @@ def train_neural_network(x):
             startIndex += batch_size
         #deletes the initial random column
         np.delete(Y, 0, 1)
+
         #without adding back the mean
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[0,:], fs1)
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[1,:], fs1)
@@ -154,6 +160,7 @@ def train_neural_network(x):
         #windows writing path
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[0,:], fs1)
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[1,:], fs1)
+
 
 start_time = time.clock()
 
