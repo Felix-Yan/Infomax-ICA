@@ -16,17 +16,22 @@ data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 np.random.seed(10)
 
 n_sources = 2
-batch_size = 100
+batch_size = 500
 
 #randomly initialize the mixing matrix A
 #each entry is from uniform[0,1), 
 A = np.random.rand(2,2)
+
+#the number of data points. Also the number of columns.
+#Ns = len(data1)
+Ns = 50000 #self defined data length
+data1 = data1[:Ns]
+data2 = data2[:Ns]
+
 #stack the two data arrays together as the source signals
 #the shape of S is (2,Ns)
 S = np.array((data1,data2))
 
-#the number of data points. Also the number of columns.
-Ns = len(data1)
 #V is the observed signal mixture.
 V = np.dot(A,S)
 
