@@ -2,14 +2,15 @@ import tensorflow as tf
 import soundfile as sf
 import numpy as np
 import time
+import cProfile
 
 #read data, the type of data is a 1-D np.ndarray
-data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
-data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
+# data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
+# data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
 
 #Windows reading path
-# data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
-# data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
+data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
+data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 
 #this sets the random seed to a fixed number.
 np.random.seed(10)
@@ -145,7 +146,8 @@ def train_neural_network(x):
         #a random matrix with shape 2*1
         Y = np.empty([2,1])
         startIndex = 0
-        for i in range(int(Ns/batch_size)):
+        #for i in range(int(Ns/batch_size)):
+        for i in range(100): #experiment
             new_batch = next_fixed_batch(batch_size, data, startIndex)
             Y_batch = sess.run(information, feed_dict={x: new_batch})
             Y = np.concatenate((Y,Y_batch), axis=1)
@@ -154,16 +156,17 @@ def train_neural_network(x):
         np.delete(Y, 0, 1)
 
         #without adding back the mean
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[0,:], fs1)
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[1,:], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[0,:], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[1,:], fs1)
         
         #windows writing path
-        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[0,:], fs1)
-        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[1,:], fs1)
+        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[0,:], fs1)
+        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[1,:], fs1)
 
 
 start_time = time.clock()
 
-train_neural_network(x)
+#train_neural_network(x)
+cProfile.run('train_neural_network(x)')
 
 print(time.clock() - start_time, "seconds")
