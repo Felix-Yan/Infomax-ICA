@@ -5,12 +5,12 @@ import time
 import cProfile
 
 #read data, the type of data is a 1-D np.ndarray
-data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
-data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
+# data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
+# data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
 
 #Windows reading path
-# data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
-# data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
+data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
+data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 
 #this sets the random seed to a fixed number.
 np.random.seed(10)
@@ -24,7 +24,7 @@ A = np.random.rand(2,2)
 
 #the number of data points. Also the number of columns.
 #Ns = len(data1)
-Ns = 150000 #self defined data length
+Ns = fs1 * 5 #self defined data length, 7 seconds of speech
 data1 = data1[:Ns]
 data2 = data2[:Ns]
 
@@ -139,6 +139,7 @@ def train_neural_network(x):
 
         sess.run(tf.global_variables_initializer())
 
+        #this prints out the training variables in tensorflow
         tvars=tf.trainable_variables()
         myvars = sess.run(tvars)
         print(myvars)
@@ -173,12 +174,12 @@ def train_neural_network(x):
         #np.delete(Y, 0, 1)
 
         #without adding back the mean
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[:,0], fs1)
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[:,1], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[:,0], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[:,1], fs1)
         
         #windows writing path
-        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[0,:], fs1)
-        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[1,:], fs1)
+        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
+        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[:,1], fs1)
 
 
 start_time = time.clock()
