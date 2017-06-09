@@ -121,18 +121,23 @@ def train_neural_network(x):
     Y1 = tf.slice(information,[0,0],[batch_size,1])
     Y2 = tf.slice(information,[0,1],[batch_size,1])
     costTotal = 0
+    epsilon = 1e-8
     #Sums up the cost for all input vectors (2*1) in a batch
     for i in range(batch_size):
         #this accesses the ith element in a 1-d tensor
         y1 = Y1[i,0]
         y2 = Y2[i,0]
-        costTotal += -tf.log(tf.abs(tf.matrix_determinant(W)*y1*(1-y1)*y2*(1-y2)))
+        #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
+        mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
+        costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+
 
     cost = costTotal/batch_size
-    #Add learning rate 5e-5
-    optimizer = tf.train.AdamOptimizer(5e-5).minimize(cost)
+    #Add learning rate 1e-5
+    optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
+    #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 15
+    hm_epochs = 10
 
 
     
@@ -152,13 +157,18 @@ def train_neural_network(x):
         
         for epoch in range(hm_epochs):
             epoch_loss = 0
+            step = 0
             for _ in range(int(Ns/batch_size)):
             #for _ in range(10):
                 epoch_x= next_batch(batch_size,data)
-                _, c = sess.run([optimizer, cost], feed_dict={x: epoch_x})
+                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
                 epoch_loss += c
+                step+=1
+                if step % 50 ==0:
+                    print('Epoch', epoch, 'cost', c,'determinant',det)
+
             epoch_loss = epoch_loss/(int(Ns/batch_size))
-            print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
+            # print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
 
         
         #a random matrix with shape 2*1
