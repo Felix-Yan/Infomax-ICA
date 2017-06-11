@@ -147,8 +147,8 @@ def train_neural_network(x):
 
     with tf.Session(config=config) as sess:
 
-        #run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        #run_metadata = tf.RunMetadata()
+        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
 
         sess.run(tf.global_variables_initializer())
 
@@ -167,8 +167,8 @@ def train_neural_network(x):
             step = 0
             for _ in range(int(Ns/batch_size)):
                 epoch_x= next_batch(batch_size,data)
-                #_, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
-                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
+                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
+                #_, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
                 epoch_loss += c
                 # The following prints the intermediate steps in each epoch
                 # step+=1
@@ -189,11 +189,11 @@ def train_neural_network(x):
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[:,1], fs1)
 
-        # Create the Timeline object, and write it to a json
-        # tl = timeline.Timeline(run_metadata.step_stats)
-        # ctf = tl.generate_chrome_trace_format()
-        # with open('timeline.json', 'w') as f:
-        #     f.write(ctf)
+        #Create the Timeline object, and write it to a json
+        tl = timeline.Timeline(run_metadata.step_stats)
+        ctf = tl.generate_chrome_trace_format()
+        with open('timeline.json', 'w') as f:
+            f.write(ctf)
 
 
 start_time = time.clock()
