@@ -2,6 +2,7 @@ import tensorflow as tf
 import soundfile as sf
 import numpy as np
 import time
+from tensorflow.python.client import timeline
 #import cProfile
 
 #read data, the type of data is a 1-D np.ndarray
@@ -139,9 +140,15 @@ def train_neural_network(x):
     
     hm_epochs = 10
 
+    #try to disable all the gpus
+    config = tf.ConfigProto(
+        device_count = {'GPU': 0}
+    )
 
-    
-    with tf.Session() as sess:
+    with tf.Session(config=config) as sess:
+
+        #run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        #run_metadata = tf.RunMetadata()
 
         sess.run(tf.global_variables_initializer())
 
@@ -154,43 +161,39 @@ def train_neural_network(x):
         # OLD:
         #sess.run(tf.initialize_all_variables())
         # NEW:
-        
+    
         for epoch in range(hm_epochs):
             epoch_loss = 0
             step = 0
             for _ in range(int(Ns/batch_size)):
-            #for _ in range(10):
                 epoch_x= next_batch(batch_size,data)
+                #_, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
                 _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
                 epoch_loss += c
-                step+=1
-                if step % 50 ==0:
-                    print('Epoch', epoch, 'cost', c,'determinant',det)
+                # The following prints the intermediate steps in each epoch
+                # step+=1
+                # if step % 50 ==0:
+                #     print('Epoch', epoch, 'cost', c,'determinant',det)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
-            # print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
+            print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
 
-        
-        #a random matrix with shape 2*1
-        #Y = np.empty([2,1])
-        #startIndex = 0
-        #for i in range(int(Ns/batch_size)):
-        #for i in range(100): #experiment
-            #new_batch = next_fixed_batch(batch_size, data, startIndex)
-            #Y_batch = sess.run(information, feed_dict={x: new_batch})
+        #Y = sess.run(information, feed_dict={x: data}, options=run_options, run_metadata=run_metadata)
         Y = sess.run(information, feed_dict={x: data})
-            #Y = np.concatenate((Y,Y_batch), axis=1)
-            #startIndex += batch_size
-        #deletes the initial random column
-        #np.delete(Y, 0, 1)
 
         #without adding back the mean
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[:,0], fs1)
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[:,1], fs1)
-        
+    
         #windows writing path
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[:,1], fs1)
+
+        # Create the Timeline object, and write it to a json
+        # tl = timeline.Timeline(run_metadata.step_stats)
+        # ctf = tl.generate_chrome_trace_format()
+        # with open('timeline.json', 'w') as f:
+        #     f.write(ctf)
 
 
 start_time = time.clock()
