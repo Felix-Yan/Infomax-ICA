@@ -3,7 +3,7 @@ import soundfile as sf
 import numpy as np
 import time
 from tensorflow.python.client import timeline
-#import cProfile
+import cProfile
 
 #read data, the type of data is a 1-D np.ndarray
 data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
@@ -70,6 +70,8 @@ data = np.transpose(data)
 #None means it can be any value
 x = tf.placeholder('float', [None, n_sources])
 
+
+#The two functions below are not necessary 
 #This give s a random block of data with size num
 def next_batch(num, data):
 
@@ -145,10 +147,11 @@ def train_neural_network(x):
         device_count = {'GPU': 0}
     )
 
-    with tf.Session(config=config) as sess:
+     with tf.Session(config=config) as sess:
+    #with tf.Session() as sess:
 
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
+        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        # run_metadata = tf.RunMetadata()
 
         sess.run(tf.global_variables_initializer())
 
@@ -166,12 +169,14 @@ def train_neural_network(x):
             epoch_loss = 0
             step = 0
             for _ in range(int(Ns/batch_size)):
-                epoch_x= next_batch(batch_size,data)
-                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
+                #epoch_x= next_batch(batch_size,data)
+                startIndex = step * batch_size
+                # _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
                 #_, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
+                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: data[startIndex:startIndex+batch_size,:]})
                 epoch_loss += c
                 # The following prints the intermediate steps in each epoch
-                # step+=1
+                step+=1
                 # if step % 50 ==0:
                 #     print('Epoch', epoch, 'cost', c,'determinant',det)
 
@@ -190,15 +195,15 @@ def train_neural_network(x):
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[:,1], fs1)
 
         #Create the Timeline object, and write it to a json
-        tl = timeline.Timeline(run_metadata.step_stats)
-        ctf = tl.generate_chrome_trace_format()
-        with open('timeline.json', 'w') as f:
-            f.write(ctf)
+        # tl = timeline.Timeline(run_metadata.step_stats)
+        # ctf = tl.generate_chrome_trace_format()
+        # with open('timeline.json', 'w') as f:
+        #     f.write(ctf)
 
 
 start_time = time.clock()
 
-train_neural_network(x)
-#cProfile.run('train_neural_network(x)')
+#train_neural_network(x)
+cProfile.run('train_neural_network(x)')
 
 print(time.clock() - start_time, "seconds")
