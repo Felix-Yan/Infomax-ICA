@@ -115,14 +115,10 @@ def neural_network_model(data):
    
     return output, output_layer['weights'],output_layer['biases']
 
-def train_neural_network(x):
-    information, W, Bias = neural_network_model(x)
-    # OLD VERSION:
-    #cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
-    # NEW:
+def calculate_cost(unmixed,W):
     #slice rows out of a 2d tensor
-    Y1 = tf.slice(information,[0,0],[batch_size,1])
-    Y2 = tf.slice(information,[0,1],[batch_size,1])
+    Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
+    Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
     costTotal = 0
     epsilon = 1e-8
     #Sums up the cost for all input vectors (2*1) in a batch
@@ -131,11 +127,40 @@ def train_neural_network(x):
         y1 = Y1[i,0]
         y2 = Y2[i,0]
         #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
-        mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
-        costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+        #mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
+        mat_deter = tf.matrix_determinant(W)
+        #costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+        costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)
 
 
     cost = costTotal/batch_size
+    return cost
+
+
+def train_neural_network(x):
+    information, W, Bias = neural_network_model(x)
+    # OLD VERSION:
+    #cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
+    # NEW:
+    #slice rows out of a 2d tensor
+    # Y1 = tf.slice(information,[0,0],[batch_size,1])
+    # Y2 = tf.slice(information,[0,1],[batch_size,1])
+    # costTotal = 0
+    # epsilon = 1e-8
+    # #Sums up the cost for all input vectors (2*1) in a batch
+    # for i in range(batch_size):
+    #     #this accesses the ith element in a 1-d tensor
+    #     y1 = Y1[i,0]
+    #     y2 = Y2[i,0]
+    #     #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
+    #     #mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
+    #     mat_deter = tf.matrix_determinant(W)
+    #     #costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+    #     costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+
+
+    # cost = costTotal/batch_size
+    cost = calculate_cost(information,W)
     #Add learning rate 1e-5
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
@@ -147,7 +172,7 @@ def train_neural_network(x):
         device_count = {'GPU': 0}
     )
 
-     with tf.Session(config=config) as sess:
+    with tf.Session(config=config) as sess:
     #with tf.Session() as sess:
 
         # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -173,7 +198,7 @@ def train_neural_network(x):
                 startIndex = step * batch_size
                 # _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x}, options=run_options, run_metadata=run_metadata)
                 #_, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: epoch_x})
-                _, c, det = sess.run([optimizer, cost, mat_deter], feed_dict={x: data[startIndex:startIndex+batch_size,:]})
+                _, c, weights = sess.run([optimizer, cost, W], feed_dict={x: data[startIndex:startIndex+batch_size,:]})
                 epoch_loss += c
                 # The following prints the intermediate steps in each epoch
                 step+=1
@@ -182,6 +207,7 @@ def train_neural_network(x):
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
+            print(weights)
 
         #Y = sess.run(information, feed_dict={x: data}, options=run_options, run_metadata=run_metadata)
         Y = sess.run(information, feed_dict={x: data})
