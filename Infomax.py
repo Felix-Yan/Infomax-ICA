@@ -186,7 +186,7 @@ def train_neural_network(x):
                 # The following prints the intermediate steps in each epoch
                 step+=1
                 # if step % 50 ==0:
-                #     print('Epoch', epoch, 'cost', c,'determinant',det)
+                #     print('Epoch', epoch, 'cost', c)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
@@ -210,9 +210,9 @@ def train_neural_network(x):
         #     f.write(ctf)
 
 
-start_time = time.clock()
+#start_time = time.clock()
 
 #train_neural_network(x)
 cProfile.run('train_neural_network(x)')
 
-print(time.clock() - start_time, "seconds")
+#print(time.clock() - start_time, "seconds")
