@@ -25,7 +25,7 @@ A = np.random.rand(2,2)
 
 #the number of data points. Also the number of columns.
 #Ns = len(data1)
-Ns = fs1 * 5 #self defined data length, 5 seconds of speech
+Ns = fs1 * 7 #self defined data length, 5 seconds of speech
 data1 = data1[:Ns]
 data2 = data2[:Ns]
 
@@ -142,30 +142,13 @@ def train_neural_network(x):
     # OLD VERSION:
     #cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     # NEW:
-    #slice rows out of a 2d tensor
-    # Y1 = tf.slice(information,[0,0],[batch_size,1])
-    # Y2 = tf.slice(information,[0,1],[batch_size,1])
-    # costTotal = 0
-    # epsilon = 1e-8
-    # #Sums up the cost for all input vectors (2*1) in a batch
-    # for i in range(batch_size):
-    #     #this accesses the ith element in a 1-d tensor
-    #     y1 = Y1[i,0]
-    #     y2 = Y2[i,0]
-    #     #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
-    #     #mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
-    #     mat_deter = tf.matrix_determinant(W)
-    #     #costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
-    #     costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
-
-
-    # cost = costTotal/batch_size
+    
     cost = calculate_cost(information,W)
     #Add learning rate 1e-5
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 10
+    hm_epochs = 40
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -173,7 +156,7 @@ def train_neural_network(x):
     )
 
     with tf.Session(config=config) as sess:
-    #with tf.Session() as sess:
+    # with tf.Session() as sess:
 
         # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         # run_metadata = tf.RunMetadata()
@@ -203,7 +186,7 @@ def train_neural_network(x):
                 # The following prints the intermediate steps in each epoch
                 step+=1
                 # if step % 50 ==0:
-                #     print('Epoch', epoch, 'cost', c,'determinant',det)
+                #     print('Epoch', epoch, 'cost', c)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
@@ -227,9 +210,9 @@ def train_neural_network(x):
         #     f.write(ctf)
 
 
-start_time = time.clock()
+#start_time = time.clock()
 
 #train_neural_network(x)
 cProfile.run('train_neural_network(x)')
 
-print(time.clock() - start_time, "seconds")
+#print(time.clock() - start_time, "seconds")
