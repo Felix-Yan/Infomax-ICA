@@ -130,13 +130,17 @@ def calculate_cost(unmixed,W):
     #                 )
 
     original_loss =  tf.reduce_mean(tf.matmul(tf.transpose(Y1), Y2))*1.0/batch_size - (tf.reduce_mean(Y1) * tf.reduce_mean(Y2)) 
-    divisor = tf.sqrt(
-        (tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) ) *
-        (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
-                    )
+    variance1 = tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) )
+    variance2 = tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) )
+    divisor = tf.sqrt(variance1*variance2)
+    # divisor = tf.sqrt(
+    #     (tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) ) *
+    #     (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
+    #                 )
     original_loss = tf.truediv(original_loss, divisor)
     #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
-    cost = tf.abs(original_loss)+epsilon
+    cost = tf.abs(original_loss)+epsilon#+tf.abs(variance1-variance2)
+    #TODO I need to keep the variance constant.
     return cost
 
 
@@ -151,7 +155,7 @@ def train_neural_network(x):
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 200
+    hm_epochs = 100
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -188,8 +192,9 @@ def train_neural_network(x):
                 epoch_loss += c
                 # The following prints the intermediate steps in each epoch
                 step+=1
-                # if step % 2 ==0:
-                #     print('Epoch', epoch, 'cost', c)
+                if step % 100 == 0:
+                    print('Epoch', epoch, 'cost', c)
+                    print('weights',weights)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
