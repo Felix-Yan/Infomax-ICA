@@ -52,11 +52,12 @@ data = preprocessing(S,Ns,n_sources)
 # specgram = stft.spectrogram(data)
 # print(specgram.shape)
 
-f, t, Sxx = signal.spectrogram(data,1000)
+f, t, Sxx = signal.spectrogram(data[:,0],fs1)
 plt.pcolormesh(t,f,Sxx)
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [sec]')
 plt.show()
+print(Sxx.shape)
 # print(Sxx.shape)
 
 
