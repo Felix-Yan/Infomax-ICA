@@ -54,7 +54,7 @@ data = preprocessing(S,Ns,n_sources)
 
 #44100/1000*20 = 882, 20ms of points
 f, t, Sxx = signal.spectrogram(data[:,0],fs1,'hann',882, 441, 882)
-plt.pcolormesh(t,f,Sxx)
+plt.pcolormesh(t,f,np.log(Sxx))
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [sec]')
 plt.show()
