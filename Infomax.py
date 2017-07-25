@@ -115,25 +115,55 @@ def neural_network_model(data):
    
     return output, output_layer['weights'],output_layer['biases']
 
+# def calculate_cost(unmixed,W):
+#     #slice rows out of a 2d tensor
+#     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
+#     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
+#     costTotal = 0
+#     epsilon = 1e-8
+#     #Sums up the cost for all input vectors (2*1) in a batch
+#     for i in range(batch_size):
+#         #this accesses the ith element in a 1-d tensor
+#         y1 = Y1[i,0]
+#         y2 = Y2[i,0]
+#         #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
+#         #mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
+#         mat_deter = tf.matrix_determinant(W)
+#         #costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
+#         costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)
+
+
+#     cost = costTotal/batch_size
+#     return cost
+
+
 def calculate_cost(unmixed,W):
+    epsilon = 1e-8
+
     #slice rows out of a 2d tensor
     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
-    costTotal = 0
-    epsilon = 1e-8
-    #Sums up the cost for all input vectors (2*1) in a batch
-    for i in range(batch_size):
-        #this accesses the ith element in a 1-d tensor
-        y1 = Y1[i,0]
-        y2 = Y2[i,0]
-        #costTotal += -tf.log(tf.abs(tf.matrix_determinant(W+np.identity(2)*epsilon)*y1*(1-y1)*y2*(1-y2)))
-        #mat_deter = tf.matrix_determinant(W+tf.to_float(np.identity(2))*epsilon)
-        mat_deter = tf.matrix_determinant(W)
-        #costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)+0.01*tf.norm(W, ord='fro', axis=[0,1])
-        costTotal += -tf.log(tf.abs(mat_deter)*y1*(1-y1)*y2*(1-y2)+epsilon)
+    Y1P = tf.subtract(1.,Y1)
+    Y2P = tf.subtract(1.,Y2)
+    #add epsilon here
+    Y1 = tf.add(epsilon,Y1)
+    Y2 = tf.add(epsilon,Y2)
+    Y1P = tf.add(epsilon,Y1P)
+    Y2P = tf.add(epsilon,Y2P)
+    
+    Y1 = tf.log(Y1)
+    Y2 = tf.log(Y2)
+    Y1P = tf.log(Y1P)
+    Y2P = tf.log(Y2P)
 
+    y1 = tf.reduce_mean(Y1)
+    y2 = tf.reduce_mean(Y2)
+    y1p = tf.reduce_mean(Y1P)
+    y2p = tf.reduce_mean(Y2P)
 
-    cost = costTotal/batch_size
+    mat_deter = tf.matrix_determinant(W)
+
+    cost = -(tf.log(tf.abs(mat_deter)+epsilon) + y1 + y2 + y1p + y2p)
     return cost
 
 
@@ -148,7 +178,7 @@ def train_neural_network(x):
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 40
+    hm_epochs = 50
 
     #try to disable all the gpus
     config = tf.ConfigProto(

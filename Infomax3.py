@@ -170,8 +170,12 @@ def calculate_cost(unmixed,W):
     #     (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
     #                 )
     original_loss = tf.truediv(numerator, divisor)
+    ortho = tf.abs(tf.reduce_sum(tf.multiply(W[:,0], W[:,1]) ) )
+    absW = tf.abs(W)
+    quan = tf.abs(tf.reduce_sum(absW[:,0]) - tf.reduce_sum(absW[:,1]))
     #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
-    cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
+    #cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
+    cost = tf.abs(original_loss)+ortho+quan
     #TODO I need to keep the variance constant.
     return cost, variance1, variance2, numerator
 
@@ -187,7 +191,7 @@ def train_neural_network(x):
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 300
+    hm_epochs = 100
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -225,12 +229,12 @@ def train_neural_network(x):
                 epoch_loss += c
                 # The following prints the intermediate steps in each epoch
                 step+=1
-                if step % 1 == 0:
-                    print('Epoch', epoch, 'cost', c)
-                    print('var1:',var1)
-                    print('var2:',var2)
-                    print('nume:',nume)
-                    print('weights',weights)
+                # if step % 1 == 0:
+                #     print('Epoch', epoch, 'cost', c)
+                #     print('var1:',var1)
+                #     print('var2:',var2)
+                #     print('nume:',nume)
+                #     print('weights',weights)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
             if epoch_loss == 0: break

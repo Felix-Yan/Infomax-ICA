@@ -26,7 +26,7 @@ data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav
 np.random.seed(10)
 
 n_sources = 2
-batch_size = 1000
+batch_size = 5000
 
 #randomly initialize the mixing matrix A
 #each entry is from uniform[0,1), 
@@ -52,7 +52,8 @@ data = preprocessing(S,Ns,n_sources)
 # specgram = stft.spectrogram(data)
 # print(specgram.shape)
 
-f, t, Sxx = signal.spectrogram(data[:,0],fs1)
+#44100/1000*20 = 882, 20ms of points
+f, t, Sxx = signal.spectrogram(data[:,0],fs1,'hann',882, 441, 882)
 plt.pcolormesh(t,f,Sxx)
 plt.ylabel('Frequency [Hz]')
 plt.xlabel('Time [sec]')
