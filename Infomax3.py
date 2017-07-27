@@ -5,38 +5,42 @@ import time
 from tensorflow.python.client import timeline
 import cProfile
 from scipy.stats.stats import pearsonr   
+import itertools
 
 #This version of infomax uses the correlation to measure independence of real audio.
 
 #read data, the type of data is a 1-D np.ndarray
-data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
-data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
+data2, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
+data1, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
+data3, fs3 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig3.wav')
 
 #Windows reading path
 # data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
 # data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 
 #this sets the random seed to a fixed number.
-np.random.seed(10)
+np.random.seed(100)
 
-n_sources = 2
+n_sources = 3
 batch_size = 1000
 
 #randomly initialize the mixing matrix A
 #each entry is from uniform[0,1), 
-A = np.random.rand(2,2)
+A = np.random.rand(n_sources,n_sources)
+print(A)
 
 #the number of data points. Also the number of columns.
 #Ns = len(data1)
 Ns = fs1 * 7 #self defined data length, 5 seconds of speech
 data1 = data1[:Ns]
 data2 = data2[:Ns]
+data3 = data3[:Ns]
 
 print('Ns',Ns)
 
 #stack the two data arrays together as the source signals
 #the shape of S is (2,Ns)
-S = np.array((data1,data2))
+S = np.array((data1,data2,data3))
 
 #V is the observed signal mixture.
 V = np.dot(A,S)
@@ -145,37 +149,70 @@ def neural_network_model(data):
 #     #TODO I need to keep the variance constant.
 #     return cost
 
+# def calculate_cost(unmixed,W):
+#     #slice rows out of a 2d tensor
+#     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
+#     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
+#     epsilon = 1e-8
+
+#     variance1 = tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) + epsilon
+#     variance2 = tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) + epsilon
+#     #avoid the small negative number issue
+#     numerator = tf.nn.relu(numerator)
+#     variance1 = tf.nn.relu(variance1)+epsilon
+#     variance2 = tf.nn.relu(variance2)+epsilon
+#     divisor = tf.sqrt(variance1*variance2)+epsilon
+#     # divisor = tf.sqrt(
+#     #     (tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) ) *
+#     #     (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
+#     #                 )
+#     original_loss = tf.truediv(numerator, divisor)
+#     ortho = tf.abs(tf.reduce_sum(tf.multiply(W[:,0], W[:,1]) ) )
+#     absW = tf.abs(W)
+#     quan = tf.abs(tf.reduce_sum(absW[:,0]) - tf.reduce_sum(absW[:,1]))
+#     #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
+#     #cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
+#     cost = tf.abs(original_loss)+ortho+quan
+#     #TODO I need to keep the variance constant.
+#     return cost, variance1, variance2, numerator
+
+
 def calculate_cost(unmixed,W):
     #slice rows out of a 2d tensor
     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
+    Y3 = tf.slice(unmixed,[0,2],[batch_size,1])
+    columns = [Y1, Y2, Y3]
     epsilon = 1e-8
-    # original_loss =  (tf.reduce_sum(tf.matmul(tf.transpose(Y1), Y2)) - (tf.reduce_sum(Y1) * tf.reduce_sum(Y2)))*1.0/batch_size
-    # divisor = tf.sqrt(
-    #     (tf.reduce_sum(tf.square(Y1))*1.0/batch_size - tf.square(tf.reduce_sum(Y1)*1.0/batch_size ) ) *
-    #     (tf.reduce_sum(tf.square(Y2))*1.0/batch_size - tf.square(tf.reduce_sum(Y2)*1.0/batch_size ) )
-    #                 )
+    col_pairs = []
 
-    # numerator =  tf.reduce_mean(tf.matmul(tf.transpose(Y1), Y2))*1.0/batch_size - (tf.reduce_mean(Y1) * tf.reduce_mean(Y2))
-    numerator =  tf.reduce_mean(tf.multiply(Y1, Y2)) - (tf.reduce_mean(Y1) * tf.reduce_mean(Y2))
-    variance1 = tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) + epsilon
-    variance2 = tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) + epsilon
-    #avoid the small negative number issue
-    numerator = tf.nn.relu(numerator)
-    variance1 = tf.nn.relu(variance1)+epsilon
-    variance2 = tf.nn.relu(variance2)+epsilon
-    divisor = tf.sqrt(variance1*variance2)+epsilon
-    # divisor = tf.sqrt(
-    #     (tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) ) *
-    #     (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
-    #                 )
-    original_loss = tf.truediv(numerator, divisor)
+    for subset in itertools.combinations(columns, 2):
+        col_pairs.append(subset)
+
+    total_corr = 0
+
+    for col_pair in col_pairs:
+        Y1 = col_pair[0]
+        Y2 = col_pair[1]
+        numerator =  tf.reduce_mean(tf.multiply(Y1, Y2)) - (tf.reduce_mean(Y1) * tf.reduce_mean(Y2))
+        variance1 = tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) + epsilon
+        variance2 = tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) + epsilon
+        #avoid the small negative number issue
+        numerator = tf.nn.relu(numerator)
+        variance1 = tf.nn.relu(variance1)+epsilon
+        variance2 = tf.nn.relu(variance2)+epsilon
+        divisor = tf.sqrt(variance1*variance2)+epsilon
+        original_loss = tf.truediv(numerator, divisor)
+        total_corr += original_loss
+
     ortho = tf.abs(tf.reduce_sum(tf.multiply(W[:,0], W[:,1]) ) )
+    ortho += tf.abs(tf.reduce_sum(tf.multiply(W[:,0], W[:,2]) ) )
+    ortho += tf.abs(tf.reduce_sum(tf.multiply(W[:,1], W[:,2]) ) )
     absW = tf.abs(W)
     quan = tf.abs(tf.reduce_sum(absW[:,0]) - tf.reduce_sum(absW[:,1]))
-    #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
-    #cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
-    cost = tf.abs(original_loss)+ortho+quan
+    quan += tf.abs(tf.reduce_sum(absW[:,1]) - tf.reduce_sum(absW[:,2]))
+
+    cost = tf.abs(total_corr)+ortho+quan
     #TODO I need to keep the variance constant.
     return cost, variance1, variance2, numerator
 
@@ -191,7 +228,7 @@ def train_neural_network(x):
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 100
+    hm_epochs = 400
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -247,7 +284,7 @@ def train_neural_network(x):
         #without adding back the mean
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor1.wav', Y[:,0], fs1)
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor2.wav', Y[:,1], fs1)
-    
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor3.wav', Y[:,2], fs1)
         #windows writing path
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info2.wav', Y[:,1], fs1)
