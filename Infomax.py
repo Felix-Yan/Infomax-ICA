@@ -17,7 +17,7 @@ data3, fs3 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig3.wav
 #this sets the random seed to a fixed number.
 np.random.seed(10)
 
-n_sources = 3
+n_sources = 2
 batch_size = 100
 
 #randomly initialize the mixing matrix A
@@ -33,7 +33,8 @@ data3 = data3[:Ns]
 
 #stack the two data arrays together as the source signals
 #the shape of S is (2,Ns)
-S = np.array((data1,data2,data3))
+# S = np.array((data1,data2,data3))
+S = np.array((data1,data2))
 
 #V is the observed signal mixture.
 V = np.dot(A,S)
@@ -145,38 +146,39 @@ def calculate_cost(unmixed,W):
     #slice rows out of a 2d tensor
     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
-    Y3 = tf.slice(unmixed,[0,2],[batch_size,1])
+    # Y3 = tf.slice(unmixed,[0,2],[batch_size,1])
     Y1P = tf.subtract(1.,Y1)
     Y2P = tf.subtract(1.,Y2)
-    Y3P = tf.subtract(1.,Y3)
+    # Y3P = tf.subtract(1.,Y3)
     #add epsilon here
     Y1 = tf.add(epsilon,Y1)
     Y2 = tf.add(epsilon,Y2)
-    Y3 = tf.add(epsilon,Y3)
+    # Y3 = tf.add(epsilon,Y3)
 
     Y1P = tf.add(epsilon,Y1P)
     Y2P = tf.add(epsilon,Y2P)
-    Y3P = tf.add(epsilon,Y3P)
+    # Y3P = tf.add(epsilon,Y3P)
 
     Y1 = tf.log(Y1)
     Y2 = tf.log(Y2)
-    Y3 = tf.log(Y3)
+    # Y3 = tf.log(Y3)
 
     Y1P = tf.log(Y1P)
     Y2P = tf.log(Y2P)
-    Y3P = tf.log(Y3P)
+    # Y3P = tf.log(Y3P)
 
     y1 = tf.reduce_mean(Y1)
     y2 = tf.reduce_mean(Y2)
-    y3 = tf.reduce_mean(Y3)
+    # y3 = tf.reduce_mean(Y3)
 
     y1p = tf.reduce_mean(Y1P)
     y2p = tf.reduce_mean(Y2P)
-    y3p = tf.reduce_mean(Y3P)
+    # y3p = tf.reduce_mean(Y3P)
 
     mat_deter = tf.matrix_determinant(W)
 
-    cost = -(tf.log(tf.abs(mat_deter)+epsilon) + y1 + y2 + y3 + y1p + y2p + y3p)
+    # cost = -(tf.log(tf.abs(mat_deter)+epsilon) + y1 + y2 + y3 + y1p + y2p + y3p)
+    cost = -(tf.log(tf.abs(mat_deter)+epsilon) + y1 + y2 + y1p + y2p )
     return cost
 
 
@@ -241,7 +243,7 @@ def train_neural_network(x):
         #without adding back the mean
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info1.wav', Y[:,0], fs1)
         sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info2.wav', Y[:,1], fs1)
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info3.wav', Y[:,2], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info3.wav', Y[:,2], fs1)
     
         #windows writing path
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
@@ -261,7 +263,15 @@ cProfile.run('train_neural_network(x)')
 
 #print(time.clock() - start_time, "seconds")
 
-# weights
+# 2 inputs weight matrix
+# [[ 1.38245511 -1.91294873]
+#  [-2.0170188  -1.30917716]]
+
+
+
+# 3 inputs weights
 # [[-0.97527641 -1.20582628 -1.73407209]
  # [ 0.79302579 -2.09988451  0.82884341]
  # [ 1.81829226  0.26965806 -1.29209054]]
+
+

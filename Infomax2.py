@@ -9,12 +9,12 @@ import cProfile
 #This does not work.
 
 #read data, the type of data is a 1-D np.ndarray
-# data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
-# data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
+data1, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig1.wav')
+data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav')
 
 #Windows reading path
-data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
-data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
+# data1, fs1 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig1.wav')
+# data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 
 #this sets the random seed to a fixed number.
 np.random.seed(10)
@@ -225,12 +225,12 @@ def train_neural_network(x):
         Y = sess.run(information, feed_dict={x: data})
 
         #without adding back the mean
-        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info3.wav', Y[:,0], fs1)
-        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/info4.wav', Y[:,1], fs1)
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/logcosh1.wav', Y[:,0], fs1)
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/logcosh2.wav', Y[:,1], fs1)
     
         #windows writing path
-        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info3.wav', Y[:,0], fs1)
-        sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info4.wav', Y[:,1], fs1)
+        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\logcosh1.wav', Y[:,0], fs1)
+        # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\logcosh2.wav', Y[:,1], fs1)
 
         #Create the Timeline object, and write it to a json
         # tl = timeline.Timeline(run_metadata.step_stats)
@@ -245,3 +245,7 @@ start_time = time.clock()
 cProfile.run('train_neural_network(x)')
 
 print(time.clock() - start_time, "seconds")
+
+#weight matrix
+# [[ 0.60584104 -0.50052547]
+ # [-0.90244889  0.37680322]]
