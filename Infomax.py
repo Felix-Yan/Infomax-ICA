@@ -38,6 +38,7 @@ S = np.array((data1,data2))
 
 #V is the observed signal mixture.
 V = np.dot(A,S)
+# V = S
 
 #Remove mean
 #To take the mean of each row, choose axis = 1
@@ -193,7 +194,7 @@ def train_neural_network(x):
     optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 70
+    hm_epochs = 50
 
     #try to disable all the gpus
     config = tf.ConfigProto(
