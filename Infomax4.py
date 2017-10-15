@@ -5,6 +5,9 @@ import time
 from tensorflow.python.client import timeline
 import cProfile
 from scipy.stats.stats import pearsonr   
+import matplotlib
+matplotlib.use('TkAgg') 
+import matplotlib.pyplot as plt
 
 #This version of infomax uses the correlation to measure independence of real audio.
 #It works with 2 source signals.
@@ -22,10 +25,12 @@ np.random.seed(10)
 
 n_sources = 2
 batch_size = 1000
+energy = 1
 
 #randomly initialize the mixing matrix A
 #each entry is from uniform[0,1), 
 A = np.random.rand(2,2)
+invA = np.linalg.inv(A)
 
 #the number of data points. Also the number of columns.
 #Ns = len(data1)
@@ -69,6 +74,20 @@ E = P[:,:n_sources]
 whiteningMatrix = np.dot(np.linalg.inv(np.sqrt(D)),E.T)
 #whitened is the whitened signal matrix
 whitened = np.dot(whiteningMatrix,V)
+
+newA = np.dot(whiteningMatrix,A)
+
+plt.figure()
+plt.title('A')
+plt.plot(A.T)
+
+plt.figure()
+plt.title('Whitened A')
+plt.plot(newA.T)
+
+plt.figure()
+plt.title('inverse A')
+plt.plot(invA.T)
 
 data = whitened
 data = np.transpose(data)
@@ -173,7 +192,10 @@ def calculate_cost(unmixed,W):
     original_loss = tf.truediv(numerator, divisor)
     ortho = tf.abs(tf.reduce_sum(tf.multiply(W[:,0], W[:,1]) ) )
     absW = tf.abs(W)
-    quan = tf.abs(tf.reduce_sum(absW[:,0]) - tf.reduce_sum(absW[:,1]))
+    # quan = tf.abs(tf.reduce_sum(absW[:,0]) - tf.reduce_sum(absW[:,1]))
+    quan = tf.abs(tf.reduce_sum(absW[:,0]) - energy)
+    quan += tf.abs(tf.reduce_sum(absW[:,1]) - energy)
+
     #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
     #cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
     cost = tf.abs(original_loss)+ortho+quan
@@ -187,12 +209,13 @@ def train_neural_network(x):
     #cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     # NEW:
     
+    learning_rate = 0.0001
     cost, v1, v2, num = calculate_cost(information,W)
     #Add learning rate 1e-5
-    optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 200
+    hm_epochs = 100
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -241,6 +264,15 @@ def train_neural_network(x):
             if epoch_loss < 0.00001: break
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
             print(weights)
+
+        print('A:',A.T)
+        print('invA:',invA.T)
+
+        plt.figure()
+        plt.title('Rotation')
+        plt.plot(weights)
+
+        plt.show()
 
         #Y = sess.run(information, feed_dict={x: data}, options=run_options, run_metadata=run_metadata)
         Y = sess.run(information, feed_dict={x: data})
