@@ -9,11 +9,8 @@ import matplotlib
 matplotlib.use('TkAgg') 
 import matplotlib.pyplot as plt
 
-np.random.seed(10)
-
-A = np.random.rand(2,2)
-print(A.T)
-
-plt.plot(A.T)
-
+data, fs1 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor1.wav')
+var = np.var(data)
+print(var)
+plt.plot(data)
 plt.show()

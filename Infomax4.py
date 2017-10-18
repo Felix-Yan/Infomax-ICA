@@ -6,7 +6,8 @@ from tensorflow.python.client import timeline
 import cProfile
 from scipy.stats.stats import pearsonr   
 import matplotlib
-matplotlib.use('TkAgg') 
+# matplotlib.use('TkAgg') 
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 
 #This version of infomax uses the correlation to measure independence of real audio.
@@ -21,11 +22,12 @@ data2, fs2 = sf.read('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/a_sig2.wav
 # data2, fs2 = sf.read('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\a_sig2.wav')
 
 #this sets the random seed to a fixed number.
-np.random.seed(10)
+np.random.seed(30)
 
 n_sources = 2
-batch_size = 1000
+batch_size = 10000
 energy = 1
+lowest_var = 0.01
 
 #randomly initialize the mixing matrix A
 #each entry is from uniform[0,1), 
@@ -79,18 +81,60 @@ newA = np.dot(whiteningMatrix,A)
 
 plt.figure()
 plt.title('A')
-plt.plot(A.T)
+AT = A.T
+hor = AT[0,:]
+ver = AT[1,:]
+lineX1 = [0,hor[0]]
+lineX2 = [0,hor[1]]
+lineY1 = [0,ver[0]]
+lineY2 = [0,ver[1]]
+plt.plot(lineX1,lineY1)
+plt.plot(lineX2,lineY2)
+plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure1.png")
 
 plt.figure()
 plt.title('Whitened A')
-plt.plot(newA.T)
+newAT = newA.T
+hor = newAT[0,:]
+ver = newAT[1,:]
+lineX1 = [0,hor[0]]
+lineX2 = [0,hor[1]]
+lineY1 = [0,ver[0]]
+lineY2 = [0,ver[1]]
+plt.plot(lineX1,lineY1)
+plt.plot(lineX2,lineY2)
+plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure2.png")
+
+plt.figure()
+plt.title('inverse Whitened A')
+invnewAT = np.linalg.inv(newA.T)
+hor = invnewAT[0,:]
+ver = invnewAT[1,:]
+lineX1 = [0,hor[0]]
+lineX2 = [0,hor[1]]
+lineY1 = [0,ver[0]]
+lineY2 = [0,ver[1]]
+plt.plot(lineX1,lineY1)
+plt.plot(lineX2,lineY2)
+plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure6.png")
 
 plt.figure()
 plt.title('inverse A')
-plt.plot(invA.T)
+invAT = invA.T
+hor = invAT[0,:]
+ver = invAT[1,:]
+lineX1 = [0,hor[0]]
+lineX2 = [0,hor[1]]
+lineY1 = [0,ver[0]]
+lineY2 = [0,ver[1]]
+plt.plot(lineX1,lineY1)
+plt.plot(lineX2,lineY2)
+plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure3.png")
 
 data = whitened
 data = np.transpose(data)
+
+# data = V.T
 
 #None means it can be any value
 x = tf.placeholder('float', [None, n_sources])
@@ -132,13 +176,19 @@ def next_batch(num, data):
 
 
 def neural_network_model(data):
+    # C = tf.ones([n_sources, n_sources])
+    # average = energy*1.0/n_sources
+    # C = tf.multiply(average,C)
     output_layer = {'weights':tf.Variable(tf.random_normal([n_sources, n_sources])),
                     'biases':tf.Variable(tf.random_normal([n_sources]))}
+    # output_layer = {'weights':tf.Variable(C),
+    #             'biases':tf.Variable(tf.random_normal([n_sources]))}
     net = tf.nn.bias_add(tf.matmul(data,output_layer['weights']), output_layer['biases'])
     output = tf.sigmoid(net)
     # output = net
+    pure = net
    
-    return output, output_layer['weights'],output_layer['biases']
+    return output, output_layer['weights'],output_layer['biases'], pure
 
 # def calculate_cost(unmixed,W):
 #     #slice rows out of a 2d tensor
@@ -170,6 +220,7 @@ def calculate_cost(unmixed,W):
     Y1 = tf.slice(unmixed,[0,0],[batch_size,1])
     Y2 = tf.slice(unmixed,[0,1],[batch_size,1])
     epsilon = 1e-8
+    var_diff = 0
     # original_loss =  (tf.reduce_sum(tf.matmul(tf.transpose(Y1), Y2)) - (tf.reduce_sum(Y1) * tf.reduce_sum(Y2)))*1.0/batch_size
     # divisor = tf.sqrt(
     #     (tf.reduce_sum(tf.square(Y1))*1.0/batch_size - tf.square(tf.reduce_sum(Y1)*1.0/batch_size ) ) *
@@ -185,6 +236,8 @@ def calculate_cost(unmixed,W):
     variance1 = tf.nn.relu(variance1)+epsilon
     variance2 = tf.nn.relu(variance2)+epsilon
     divisor = tf.sqrt(variance1*variance2)+epsilon
+    var_diff += 10*tf.nn.relu(lowest_var - variance1)
+    var_diff += 10*tf.nn.relu(lowest_var - variance2)
     # divisor = tf.sqrt(
     #     (tf.reduce_mean(tf.square(Y1)) - tf.square(tf.reduce_mean(Y1) ) ) *
     #     (tf.reduce_mean(tf.square(Y2)) - tf.square(tf.reduce_mean(Y2) ) )
@@ -198,24 +251,30 @@ def calculate_cost(unmixed,W):
 
     #cost = -tf.log(1-tf.abs(original_loss)+epsilon)
     #cost = tf.abs(original_loss)#+0.1*tf.abs(1-variance1)+0.1*tf.abs(1-variance2)
-    cost = tf.abs(original_loss)+ortho+quan
+    cost = tf.abs(original_loss)+ortho+quan+var_diff
     #TODO I need to keep the variance constant.
     return cost, variance1, variance2, numerator
 
 
 def train_neural_network(x):
-    information, W, Bias = neural_network_model(x)
+    information, W, Bias, pure = neural_network_model(x)
     # OLD VERSION:
     #cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
     # NEW:
+
+    #dynamic learning rate
+    global_step = tf.Variable(0, trainable=False)
+    starter_learning_rate = 0.001
+    learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+                                           11200, 0.1, staircase=True)
     
-    learning_rate = 0.0001
+    # learning_rate = 0.0001
     cost, v1, v2, num = calculate_cost(information,W)
     #Add learning rate 1e-5
     optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
     #optimizer = tf.train.GradientDescentOptimizer(1e-5).minimize(cost)
     
-    hm_epochs = 100
+    hm_epochs = 20000
 
     #try to disable all the gpus
     config = tf.ConfigProto(
@@ -239,7 +298,7 @@ def train_neural_network(x):
         # OLD:
         #sess.run(tf.initialize_all_variables())
         # NEW:
-    
+        anchor = 100
         for epoch in range(hm_epochs):
             epoch_loss = 0
             step = 0
@@ -261,25 +320,87 @@ def train_neural_network(x):
                 #     print('weights',weights)
 
             epoch_loss = epoch_loss/(int(Ns/batch_size))
-            if epoch_loss < 0.00001: break
+            if epoch_loss < 0.02 and epoch > 500: break
+            if epoch % 200 == 0:
+                if anchor > epoch_loss:
+                    anchor = epoch_loss
+                else:
+                    break
             print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
             print(weights)
 
         print('A:',A.T)
         print('invA:',invA.T)
+        print('whitened A:',newA.T)
 
         plt.figure()
         plt.title('Rotation')
-        plt.plot(weights)
-
-        plt.show()
+        hor = weights[0,:]
+        ver = weights[1,:]
+        lineX1 = [0,hor[0]]
+        lineX2 = [0,hor[1]]
+        lineY1 = [0,ver[0]]
+        lineY2 = [0,ver[1]]
+        plt.plot(lineX1,lineY1)
+        plt.plot(lineX2,lineY2)
+        plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure4.png")
 
         #Y = sess.run(information, feed_dict={x: data}, options=run_options, run_metadata=run_metadata)
         Y = sess.run(information, feed_dict={x: data})
+        P = sess.run(pure, feed_dict={x: data})
+
+        Y = np.transpose(Y)
+        meanValueY = np.mean(Y, axis = 1)
+        #This changes meanValue from 1d to 2d, now a column vector with size dimension*1
+        meanValueY = np.reshape(meanValueY,(len(meanValueY),1))
+        #This creates an array full of ones with the same length as the column number of V
+        oneArrayY = np.ones((1,Ns))
+        #This creates a matrix full of mean values for each row
+        meanMatrixY = np.dot(meanValueY,oneArrayY)
+        #This gives V zero mean
+        Y = Y - meanMatrixY
+        Y = np.transpose(Y)
+
+        #now do the scaling for P to minimize sum of squared error
+        value1 = np.dot(P.T,S.T)
+        value2 = np.dot(P.T,P)
+        value3 = np.linalg.inv(value2)
+        rho = np.dot(value3,value1)
+        P = np.dot(P,rho)
+
+        print('magic:')
+        print(np.dot(weights.T,newA))
+
+        plt.figure()
+        plt.title("signal plot")
+        ax1 = plt.subplot(611)
+        plt.plot(data1[:Ns*2])
+        ax2 = plt.subplot(612, sharex=ax1)
+        plt.plot(data2[:Ns*2])
+        ax3 = plt.subplot(613, sharex=ax1)
+        plt.plot(Y.T[0,:Ns*2])
+        ax4 = plt.subplot(614, sharex=ax1)
+        plt.plot(Y.T[1,:Ns*2])
+        ax5 = plt.subplot(615, sharex=ax1)
+        plt.plot(P.T[0,:Ns*2])
+        ax6 = plt.subplot(616, sharex=ax1)
+        plt.plot(P.T[1,:Ns*2])
+        plt.savefig( "/home/yanlong/Downloads/2017T1/Comp489/ICA/plots/Infomax/figure5.png")
 
         #without adding back the mean
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor1.wav', Y[:,0], fs1)
-        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor2.wav', Y[:,1], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor1.wav', Y[:,0], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor2.wav', Y[:,1], fs1)
+
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/corP1.wav', P[:,0], fs1)
+        # sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/corP2.wav', P[:,1], fs1)
+
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor1.wav', Y.T[0,:], fs1)
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/cor2.wav', Y.T[1,:], fs1)
+
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/corP1.wav', P.T[0,:], fs1)
+        sf.write('/home/yanlong/Downloads/2017T1/Comp489/ICA/Data/corP2.wav', P.T[1,:], fs1)
+
+        return epoch_loss, P
     
         #windows writing path
         # sf.write('E:\\Courses\\Comp489\\ICA\\ICAFast\\Data\\info1.wav', Y[:,0], fs1)
@@ -295,6 +416,45 @@ def train_neural_network(x):
 #start_time = time.clock()
 
 #train_neural_network(x)
-cProfile.run('train_neural_network(x)')
+# cProfile.run('train_neural_network(x)')
+
+loss, V = train_neural_network(x)
+
+while loss > 0.17:
+    V = V.T
+    #Remove mean
+    #To take the mean of each row, choose axis = 1
+    meanValue = np.mean(V, axis = 1)
+    #This changes meanValue from 1d to 2d, now a column vector with size dimension*1
+    meanValue = np.reshape(meanValue,(len(meanValue),1))
+    #This creates an array full of ones with the same length as the column number of V
+    oneArray = np.ones((1,Ns))
+    #This creates a matrix full of mean values for each row
+    meanMatrix = np.dot(meanValue,oneArray)
+    #This gives V zero mean
+    V = V - meanMatrix
+
+    #whitening
+    #this computes the covariance matrix of V. Each row should be a variable and each column should be an observation.
+    covMatrix = np.cov(V)
+    #this gets the svd form of the covMatrix.
+    P,d,Qt = np.linalg.svd(covMatrix, full_matrices=False)
+    Q = Qt.T
+    #this gets the first L entries
+    d = d[:n_sources]
+    D = np.diag(d)
+    #this gets the first L columns of singular (eigen) vectors
+    E = P[:,:n_sources]
+    #this computes the whitening matrix D^(-1/2)*E.T
+    whiteningMatrix = np.dot(np.linalg.inv(np.sqrt(D)),E.T)
+    #whitened is the whitened signal matrix
+    whitened = np.dot(whiteningMatrix,V)
+
+    data = whitened
+    data = np.transpose(data)
+
+    newA = np.dot(weights.T,newA)
+
+    loss, V = train_neural_network(x)
 
 #print(time.clock() - start_time, "seconds")
